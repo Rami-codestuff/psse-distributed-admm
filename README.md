@@ -24,5 +24,18 @@ This is achieved mathematically using **Spectral Clustering**:
 Ensure the master `IEEE 30 bus.RAW` file is in the root directory, then run the scripts in the following exact order using the PSS®E Command Prompt:
 
 ### Step 1: Generate the Partitions
-```bash
-python Optimize_Partitioning.py
+`python Optimize_Partitioning.py`
+* **What it does:** Runs the Spectral Clustering algorithm on the network.
+* **Output:** Generates the `partition_allocation.txt` map and saves visual plots of the optimal cuts.
+
+### Step 2: Perform Network Surgery
+`python PSSE_Splitter.py`
+* **What it does:** Uses PSS/E to read the allocation map, sever the physical tie-lines, and inject "Virtual Slack" (Dummy Generators) at the boundaries to maintain electrical stability for the isolated zones.
+* **Output:** Generates fully independent sub-grid files (`Zone_0.raw`, `Zone_1.raw`, etc.).
+
+### Step 3: Run the True Multi-Core ADMM Solver
+`python PSSE_Parallel_ADMM.py`
+* **What it does:** Spawns separate Python/PSS®E instances across your CPU cores. Each core solves its local `Zone_X.raw` matrix using Newton-Raphson. The master script calculates the boundary mismatches and updates the Dummy Generators using an Alpha learning rate until the boundary voltages completely synchronize.
+* **Output:** * Live terminal feed showing boundary errors dropping to zero.
+  * Validation table comparing the distributed ADMM result against a centralized Newton-Raphson solver.
+  * Automatically saves `ADMM_Final_Results.txt` containing the fully solved network voltage profile.
